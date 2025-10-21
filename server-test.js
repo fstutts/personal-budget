@@ -1,4 +1,4 @@
-//Budget API
+//Budget API - Test Version
 
 const express = require('express');
 const cors = require('cors');
@@ -14,15 +14,17 @@ app.use('/', express.static('public'));
 //MongoDB connection
 const mongoUrl = 'mongodb://localhost:27017/personal-budget';
 
+console.log('Attempting to connect to MongoDB...');
+
 mongoose.connect(mongoUrl)
     .then(() => {
-        console.log('Connected to MongoDB');
+        console.log('✅ Connected to MongoDB successfully');
     })
     .catch((error) => {
-        console.error('Error connecting to MongoDB:', error);
+        console.error('❌ Error connecting to MongoDB:', error);
     });
 
-// Budget schema and model
+// Simplified Budget schema without strict validation
 const budgetSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -36,29 +38,23 @@ const budgetSchema = new mongoose.Schema({
     },
     color: {
         type: String,
-        required: false, // Made optional to prevent startup issues
-        trim: true,
-        validate: {
-            validator: function(v) {
-                // Only validate if color is provided
-                if (!v) return true;
-                // Validate hex color format (#RRGGBB)
-                return /^#[0-9A-F]{6}$/i.test(v);
-            },
-            message: 'Color must be a valid hex color (e.g., #FF5733)'
-        }
+        required: false, // Made optional for testing
+        trim: true
     }
 });
 
 const Budget = mongoose.model('Budget', budgetSchema);
 
 app.get('/hello', (req, res) => {
+    console.log('Hello endpoint hit');
     res.send('Hello World!');
 });
 
 app.get('/budget', async (req, res) => {
+    console.log('Budget GET endpoint hit');
     try {
         const budgetData = await Budget.find({});
+        console.log(`Found ${budgetData.length} budget items`);
         res.json({myBudget: budgetData});
     } catch (error) {
         console.error('Error fetching budget data:', error);
@@ -68,11 +64,12 @@ app.get('/budget', async (req, res) => {
 
 // Add a new budget item
 app.post('/budget', async (req, res) => {
+    console.log('Budget POST endpoint hit with data:', req.body);
     try {
         const {title, budget, color} = req.body;
         
-        // Validate input
-        if (!title || !budget) {
+        // Basic validation
+        if (!title || budget === undefined) {
             return res.status(400).json({error: 'Title and budget are required'});
         }
         
@@ -80,19 +77,19 @@ app.post('/budget', async (req, res) => {
             return res.status(400).json({error: 'Budget must be a positive number'});
         }
         
-        const newBudgetItem = new Budget({title, budget, color});
+        const newBudgetItem = new Budget({title, budget, color: color || '#FF6384'});
         const savedItem = await newBudgetItem.save();
+        console.log('Successfully saved item:', savedItem);
         res.status(201).json(savedItem);
     } catch (error) {
         console.error('Error creating budget item:', error);
-        if (error.name === 'ValidationError') {
-            res.status(400).json({error: error.message});
-        } else {
-            res.status(400).json({error: 'Failed to create budget item'});
-        }
+        res.status(400).json({error: 'Failed to create budget item'});
     }
 });
 
 app.listen(port, () => {
-    console.log(`API served at http://localhost:${port}`)
+    console.log(`🚀 API served at http://localhost:${port}`);
+    console.log('Server is ready to accept requests');
 });
+
+console.log('Starting server...');
